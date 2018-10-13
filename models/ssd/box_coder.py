@@ -39,26 +39,26 @@ class SSDBoxCoder:
             v, i = x.max(0)
             # j = v.max(0)[1][0]
             j = v.max(0)[1].item()
-            return (i[j], j)
+            return (i[j], j) # 第j个obj 以及第j个obj的最大anchors坐标
 
         default_boxes = self.default_boxes  # xywh
         default_boxes = change_box_order(default_boxes, 'xywh2xyxy')
 
         ious = box_iou(default_boxes, boxes)  # [#anchors, #obj]
-        index = torch.LongTensor(len(default_boxes)).fill_(-1)
+        index = torch.LongTensor(len(default_boxes)).fill_(-1) # 与anchor匹配的boxes坐标
         masked_ious = ious.clone()
         while True:
             i, j = argmax(masked_ious)
             if masked_ious[i, j] < 1e-6:
                 break
-            index[i] = j
-            masked_ious[i, :] = 0
+            index[i] = j #设置与anchor匹配度的boxes坐标
+            masked_ious[i, :] = 0 # 设置设置过得roi为0，表示已经搜索过次roi， 对应于while里的条件
             masked_ious[:, j] = 0
 
-        mask = (index < 0) & (ious.max(1)[0] >= 0.5)
-        if mask.any():
+        mask = (index < 0) & (ious.max(1)[0] >= 0.5) # 没有在第一次进行匹配到的 并且 对于每一个anchor与任何boxes的roi大于0.5的
+        if mask.any(): # 如果存在
             # index[mask] = ious[mask.nonzero().squeeze()].max(1)[1]
-            index[mask] = ious[mask].max(1)[1]
+            index[mask] = ious[mask].max(1)[1] #设置匹配 【1】表示使用坐标位置 对应于58行
 
         boxes = boxes[index.clamp(min=0)]  # negative index not supported
         boxes = change_box_order(boxes, 'xyxy2xywh')
