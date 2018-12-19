@@ -33,14 +33,13 @@ class TrainDataset(data.Dataset):
             box = []
             label = []
             for i in range(num_boxes):
-                c = splited[1+5*i]
-                xmin = splited[2+5*i]
-                ymin = splited[3+5*i]
-                xmax = splited[4+5*i]
-                ymax = splited[5+5*i]
+                xmin = splited[1+5*i]
+                ymin = splited[2+5*i]
+                xmax = splited[3+5*i]
+                ymax = splited[4+5*i]
+                c = splited[5+5*i]
                 box.append([float(xmin), float(ymin), float(xmax), float(ymax)])
-                # if start from 1
-                label.append(int(c)-1)
+                label.append(int(c))
             self.boxes.append(torch.Tensor(box))
             self.labels.append(torch.LongTensor(label))
 
