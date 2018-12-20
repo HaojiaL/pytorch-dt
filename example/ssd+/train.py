@@ -18,26 +18,40 @@ from loss.mutibox_loss import MutiBoxLoss
 from datasets.detdataset import TrainDataset
 from datasets.transforms import resize, random_flip, random_paste, random_crop, random_distort
 
+import torch.nn.init as init
+
+def weights_init(m):
+    classname = m.__class__.__name__
+    # print(classname)
+    if classname.find('Conv') != -1:
+        init.xavier_normal_(m.weight.data)
+        init.constant_(m.bias.data, 0.0)
+    elif classname.find('BatchNorm') != -1:
+        init.normal_(m.weight.data, 1.0, 0.02)
+        init.constant_(m.bias.data, 0)
+
 parser = argparse.ArgumentParser(description='PyTorch SSD Training')
 parser.add_argument('--lr', default=1e-4, type=float, help='learning rate')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
-parser.add_argument('--model', default='/home/hector/project/proj-pytorch/pytorch-dt/example/ssd/model/vgg16_reducedfc.pth', type=str, help='initialized model path')
-parser.add_argument('--checkpoint', default='/home/hector/project/proj-pytorch/pytorch-dt/example/ssd/checkpoint/ckpt.pth', type=str, help='checkpoint path')
+parser.add_argument('--model', default='./basemodel/vgg16.pth', type=str, help='initialized model path')
+parser.add_argument('--checkpoint', default='./example/ssd+/checkpoint/ckpt.pth', type=str, help='checkpoint path')
 args = parser.parse_args()
 
 print('==> Building model..')
-net = SSD300(num_classes=61)
+net = SSD300(num_classes=2)
+
+net.apply(weights_init)
 
 # fix load net
-# d = torch.load(args.model)
-# d_proc = {'.'.join(k.split('.')[1:]): v for k, v in d.items() if 'classifier' not in k}
-# net.extractor.features.layers.load_state_dict(d_proc, strict=False)
+d = torch.load(args.model)
+d_proc = {'.'.join(k.split('.')[1:]): v for k, v in d.items() if 'classifier' not in k}
+net.extractor.features.layers.load_state_dict(d_proc, strict=False)
 
-net.load_state_dict(torch.load(args.model))
+# net.load_state_dict(torch.load(args.model))
 
 best_loss = float('inf')
 start_epoch = 0
-if args.resume or True:
+if args.resume:
     print('==> Resuming from checkpoint..')
     checkpoint = torch.load(args.checkpoint)
     net.load_state_dict(checkpoint['net'])
@@ -89,10 +103,10 @@ valloader = torch.utils.data.DataLoader(valset, batch_size=20, shuffle=False, nu
 # net.cuda()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
-# cudnn.benchmark = True
+cudnn.benchmark = True
 net.to(device)
 
-criterion = MutiBoxLoss(num_classes=61)
+criterion = MutiBoxLoss(num_classes=2)
 optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=1e-4)
 
 
@@ -147,7 +161,8 @@ def test(epoch):
     if test_loss < best_loss:
         print('Saving..')
         state = {
-            'net': net.module.state_dict(),
+            # 'net': net.module.state_dict(),
+            'net': net.state_dict(),
             'loss': test_loss,
             'epoch': epoch,
         }
