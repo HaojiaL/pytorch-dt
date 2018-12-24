@@ -18,7 +18,8 @@ class SSDBoxCoder:
         for i, fm_size in enumerate(self.fm_sizes):
             for h, w in itertools.product(range(fm_size), repeat=2):
                 # add dense for cy
-                for offset_y in [0, 0.5]:
+                # for offset_y in [0, 0.5]:
+                for offset_y in [0, ]:
                     cx = (w + 0.5) * self.steps[i]
                     cy = (h + offset_y) * self.steps[i]
 
@@ -31,7 +32,7 @@ class SSDBoxCoder:
                     s = self.box_sizes[i]
                     for ar in self.aspect_ratios[i]:
                         boxes.append((cx, cy, s * math.sqrt(ar), s / math.sqrt(ar)))
-                        # boxes.append((cx, cy, s / math.sqrt(ar), s * math.sqrt(ar)))
+                        boxes.append((cx, cy, s / math.sqrt(ar), s * math.sqrt(ar)))
         return torch.Tensor(boxes)  # xywh
 
     def encode(self, boxes, labels):
@@ -70,7 +71,7 @@ class SSDBoxCoder:
         loc_targets = torch.cat([loc_xy, loc_wh], 1)
         cls_targets = 1 + labels[index.clamp(min=0)]
         cls_targets[index < 0] = 0
-        return loc_targets, cls_targets
+        return loc_targets, cls_targets # cls>0 的是正样本 其他为0 ； loc在cls=0的地方是无效值
 
     def decode(self, loc_preds, cls_preds, score_thresh=0.6, nms_thresh=0.45):
         variances = (0.1, 0.2)

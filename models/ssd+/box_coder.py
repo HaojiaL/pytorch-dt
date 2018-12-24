@@ -71,7 +71,7 @@ class SSDBoxCoder:
         loc_targets = torch.cat([loc_xy, loc_wh], 1)
         cls_targets = 1 + labels[index.clamp(min=0)]
         cls_targets[index < 0] = 0
-        return loc_targets, cls_targets
+        return loc_targets, cls_targets # cls>0 的是正样本 其他为0 ； loc在cls=0的地方是无效值
 
     def decode(self, loc_preds, cls_preds, score_thresh=0.6, nms_thresh=0.45):
         variances = (0.1, 0.2)

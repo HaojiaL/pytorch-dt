@@ -109,15 +109,15 @@ class SSD300(nn.Module):
     steps = (8, 16, 32, 64, 100, 300)
     box_sizes = (30, 60, 111, 162, 213, 264, 315)
     aspect_ratios = ((2,), (2, 3), (2, 3), (2, 3), (2,), (2,))
-    aspect_ratios = ((3, 4), (5, 4, 3), (5, 4, 3), (5, 4, 3), (4, 3), (3, 4))
+    # aspect_ratios = ((3, 4), (5, 4, 3), (5, 4, 3), (5, 4, 3), (4, 3), (3, 4))
     fm_sizes = (38, 19, 10, 5, 3, 1)
 
     def __init__(self, num_classes):
         super(SSD300, self).__init__()
         self.num_classes = num_classes
-        # self.num_anchors = (4, 6, 6, 6, 4, 4)
+        self.num_anchors = (4, 6, 6, 6, 4, 4)
         # add dense
-        self.num_anchors = (8, 10, 10, 10, 8, 8)
+        # self.num_anchors = (8, 10, 10, 10, 8, 8)
         self.in_channels = (512, 1024, 512, 256, 256, 256)
 
         self.extractor = VGG16Extractor300()
