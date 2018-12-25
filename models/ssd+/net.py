@@ -71,37 +71,91 @@ class VGG16Extractor300(nn.Module):
         self.conv11_1 = nn.Conv2d(256, 128, kernel_size=1)
         self.conv11_2 = nn.Conv2d(128, 256, kernel_size=3)
 
+        # Top-down layers
+        self.toplayer = nn.Conv2d(512, 256, kernel_size=1, stride=1, padding=0)
+
+        # Lateral layers
+        self.latlayer1 = nn.Conv2d(1024, 256, kernel_size=1, stride=1, padding=0)
+        self.latlayer2 = nn.Conv2d( 512, 256, kernel_size=1, stride=1, padding=0)
+
+        # Smooth layers
+        self.smooth1 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
+        self.smooth2 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
+
+    def _upsample_add(self, x, y):
+        '''Upsample and add two feature maps.
+
+        Args:
+          x: (Variable) top feature map to be upsampled.
+          y: (Variable) lateral feature map.
+
+        Returns:
+          (Variable) added feature map.
+
+        Note in PyTorch, when input size is odd, the upsampled feature map
+        with `F.upsample(..., scale_factor=2, mode='nearest')`
+        maybe not equal to the lateral feature map size.
+
+        e.g.
+        original input size: [N,_,15,15] ->
+        conv2d feature map size: [N,_,8,8] ->
+        upsampled feature map size: [N,_,16,16]
+
+        So we choose bilinear upsample which supports arbitrary output sizes.
+        '''
+        _,_,H,W = y.size()
+        return F.upsample(x, size=(H,W), mode='bilinear', align_corners=False) + y
+
     def forward(self, x):
         hs = []
-        h = self.features(x)
-        hs.append(self.norm4(h))  # conv4_3
+        h4_3 = self.features(x)
+        h4_3 = self.norm4(h4_3)
+        # hs.append(self.norm4(h4_3))  # conv4_3
 
-        h = F.max_pool2d(h, kernel_size=2, stride=2, ceil_mode=True)
+        hp1 = F.max_pool2d(h4_3, kernel_size=2, stride=2, ceil_mode=True)
 
-        h = F.relu(self.conv5_1(h))
-        h = F.relu(self.conv5_2(h))
-        h = F.relu(self.conv5_3(h))
-        h = F.max_pool2d(h, kernel_size=3, stride=1, padding=1, ceil_mode=True)
+        h5_1 = F.relu(self.conv5_1(hp1))
+        h5_2 = F.relu(self.conv5_2(h5_1))
+        h5_3 = F.relu(self.conv5_3(h5_2))
+        hp2 = F.max_pool2d(h5_3, kernel_size=3, stride=1, padding=1, ceil_mode=True)
 
-        h = F.relu(self.conv6(h))
-        h = F.relu(self.conv7(h))
-        hs.append(h)  # conv7
+        h6 = F.relu(self.conv6(hp2))
+        h7 = F.relu(self.conv7(h6))
+        # hs.append(h7)  # conv7
 
-        h = F.relu(self.conv8_1(h))
-        h = F.relu(self.conv8_2(h))
-        hs.append(h)  # conv8_2
+        h8_1 = F.relu(self.conv8_1(h7))
+        h8_2 = F.relu(self.conv8_2(h8_1))
+        # hs.append(h8_2)  # conv8_2
 
-        h = F.relu(self.conv9_1(h))
-        h = F.relu(self.conv9_2(h))
-        hs.append(h)  # conv9_2
+        h9_1 = F.relu(self.conv9_1(h8_2))
+        h9_2 = F.relu(self.conv9_2(h9_1))
+        # hs.append(h9_2)  # conv9_2
 
-        h = F.relu(self.conv10_1(h))
-        h = F.relu(self.conv10_2(h))
-        hs.append(h)  # conv10_2
+        h10_1 = F.relu(self.conv10_1(h9_2))
+        h10_2 = F.relu(self.conv10_2(h10_1))
+        # hs.append(h10_2)  # conv10_2
 
-        h = F.relu(self.conv11_1(h))
-        h = F.relu(self.conv11_2(h))
-        hs.append(h)  # conv11_2
+        h11_1 = F.relu(self.conv11_1(h10_2))
+        h11_2 = F.relu(self.conv11_2(h11_1))
+        # hs.append(h11_2)  # conv11_2
+
+        # top_down
+        p8_2 = self.toplayer(h8_2)
+        p7 = self._upsample_add(p8_2, self.latlayer1(h7))
+        p4_3 = self._upsample_add(p7, self.latlayer2(h4_3))
+
+        # smooth for predict
+        p7 = self.smooth1(p7)
+        p4_3 = self.smooth2(p4_3)
+
+        # append to hs
+        hs.append(p4_3)
+        hs.append(p7)
+        hs.append(p8_2)
+        hs.append(h9_2)
+        hs.append(h10_2)
+        hs.append(h11_2)
+
         return hs
 
 
