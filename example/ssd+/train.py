@@ -10,7 +10,7 @@ import torch.backends.cudnn as cudnn
 
 import torchvision.transforms as transforms
 
-from torch.autograd import Variable
+# from torch.autograd import Variable
 
 from models.ssd import SSD300, SSDBoxCoder
 
