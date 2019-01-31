@@ -40,7 +40,9 @@ loc_preds, cls_preds = net(x.unsqueeze(0))
 print('Decoding..')
 box_coder = SSDBoxCoder(net)
 boxes, labels, scores = box_coder.decode(
-    loc_preds.cpu().data.squeeze(), F.softmax(cls_preds.squeeze(), dim=1).cpu().data, score_thresh=0.01, nms_thresh=0.35)
+    loc_preds.cpu().data.squeeze(), 
+    F.softmax(cls_preds.squeeze(), dim=1).cpu().data, 
+    score_thresh=0.01, nms_thresh=0.45)
 print(labels)
 print(scores)
 

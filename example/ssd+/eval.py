@@ -7,7 +7,7 @@ import torchvision.transforms as transforms
 # os.chdir('/home/hector/project/proj-pytorch/pytorch-dt/')
 # sys.path.insert(0, '/home/hector/project/proj-pytorch/pytorch-dt/')
 
-# from torch.autograd import Variable
+from torch.autograd import Variable
 from datasets.transforms import resize
 from datasets.detdataset import TrainDataset
 from tools.voc_eval import voc_eval
@@ -15,9 +15,9 @@ from models.ssd import SSD300, SSDBoxCoder
 
 import torch.backends.cudnn as cudnn
 
-# import resource
-# rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
-# resource.setrlimit(resource.RLIMIT_NOFILE, (60000, rlimit[1]))
+import resource
+rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (60000, rlimit[1]))
 
 print('Loading model..')
 net = SSD300(num_classes=2)
@@ -71,7 +71,7 @@ def eval(net, dataset):
         box_preds, label_preds, score_preds = box_coder.decode(
             loc_preds.cpu().data.squeeze(),
             F.softmax(cls_preds.squeeze(), dim=1).cpu().data,
-            score_thresh=0.01)
+            score_thresh=0.1)
 
         # for baidu race
         # _, idx = score_preds.sort(descending=True)
